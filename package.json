@@ -1,0 +1,17 @@
+{
+  "name": "oatrix-lab",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "A bounded deterministic laboratory for an industrial shared reality",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "test": "node --test",
+    "test:coverage": "node --test --experimental-test-coverage",
+    "demo": "node scripts/demo.mjs",
+    "start": "node scripts/serve.mjs",
+    "build:web": "node scripts/build-web.mjs",
+    "check": "node scripts/check.mjs"
+  }
+}

@@ -1,0 +1,12 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { runExperiments } from '../experiments/scenarios.mjs';
+import { Journal } from '../src/journal.mjs';
+const { report, journal } = runExperiments();
+Journal.restore(journal.export(), journal.genesisHash, journal.head);
+await mkdir('.oatrix', { recursive: true });
+await writeFile('.oatrix/report.json', JSON.stringify(report, null, 2) + '\n');
+await writeFile('.oatrix/journal.json', JSON.stringify(journal.export(), null, 2) + '\n');
+console.log('Oatrix bounded experiments (no model calls, no external services):');
+for (const e of report.experiments) console.log(`  ${e.id}: ${e.frames.length} frames — ${e.title}`);
+console.log(`Replayed industry checkpoint: ${journal.head}`);
+console.log('Report and journal written to .oatrix/. Run npm start for the local read-only experiment console.');
