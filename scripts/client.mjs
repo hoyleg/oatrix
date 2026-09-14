@@ -1,7 +1,7 @@
 /** CLI for the PUBLIC FIXTURE IDENTITIES only. Never load real keys into this tool. */
 import { fixtureKey, command, signPayload } from '../src/identity.mjs';
 import { demand, hash } from '../src/canonical.mjs';
-import { recipeHash } from '../src/industrial-genesis.mjs';
+import { resolveRecipeRef } from '../src/industrial-genesis.mjs';
 const args = process.argv.slice(2);
 if (args.length < 3 || args.length > 4) {
   console.error('Usage: node scripts/client.mjs <alice|bob|founder|...> <action> <JSON-args> [http://127.0.0.1:8787]');
@@ -22,7 +22,7 @@ if (action === 'startJob') {
   const provider = payload.provider ?? 'host_a';
   payload = { provider, termsHash: hash(state.executionProviders[provider]), ...payload };
   if (state.v === 2) {
-    payload.recipe = /^[0-9a-f]{64}$/.test(payload.recipe) ? payload.recipe : recipeHash(state, payload.recipe);
+    payload.recipe = resolveRecipeRef(state, payload.recipe);
     demand(Object.hasOwn(state.recipes, payload.recipe), 'UNKNOWN_RECIPE');
     if (!payload.machine) {
       const candidates = Object.entries(state.assets).filter(([, a]) => a.owner === principal && a.machineClass === state.recipes[payload.recipe].definition.machineClass && a.busy === null && a.locked === null);

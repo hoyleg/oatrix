@@ -20,7 +20,20 @@ const ACTION_FIELDS = {
 };
 const DELEGATABLE = new Set(['transfer', 'startJob', 'buy', 'settleService']);
 const DURING_PAUSE = new Set(['pause', 'resume', 'revoke', 'rotateKey', 'proposeRelease', 'approveRelease', 'recordRelease', 'retireFounder']);
-export const ACTIONS = Object.freeze(Object.keys(ACTION_FIELDS));
+const freezeVocabulary = source => Object.freeze(Object.fromEntries(
+  Object.entries(source).map(([action, names]) => [action, Object.freeze([...names])])));
+const VOCABULARIES = Object.freeze({
+  1: freezeVocabulary(ACTION_FIELDS),
+  2: freezeVocabulary({ ...ACTION_FIELDS, ...INDUSTRY_FIELDS })
+});
+/** Complete argument field vocabulary for an explicit STATE/rules version (not envelope v). */
+export function actionFieldsFor(version) {
+  demand(Number.isInteger(version) && Object.hasOwn(VOCABULARIES, version), 'RULES_VERSION');
+  return VOCABULARIES[version];
+}
+export function actionsFor(version) { return Object.freeze(Object.keys(actionFieldsFor(version))); }
+/** Legacy v1 compatibility only. Version-aware clients must use actionsFor/actionFieldsFor. */
+export const ACTIONS = actionsFor(1);
 function money(n, min = 1) { return integer(n, min, MAX_MONEY); }
 function exists(map, id) { identifier(id); demand(Object.hasOwn(map, id), 'NOT_FOUND', id); return map[id]; }
 function unique(map, id) { identifier(id); demand(!Object.hasOwn(map, id), 'ALREADY_EXISTS'); }
@@ -58,9 +71,9 @@ function unlockOffer(state, offer) {
 }
 function finishTick(state) {
   if (state.v === 2) finishIndustryTick(state);
-  for (const id of Object.keys(state.jobs).sort()) {
+  else for (const id of Object.keys(state.jobs).sort()) {
     const job = state.jobs[id];
-    if (state.v === 2 || job.status !== 'running' || job.end > state.tick) continue;
+    if (job.status !== 'running' || job.end > state.tick) continue;
     if (job.recipe === 'sword') {
       state.assets[id] = { owner: job.owner, kind: 'sword', embodied: { ore: 2, wood: 1 },
         content: hashBytes(SWORD_CONTENT), deployed: null, locked: null };
@@ -83,7 +96,7 @@ export function transition(previous, envelope) {
   demand(b.v === 1 && b.world === previous.world, 'WRONG_WORLD');
   identifier(b.principal); identifier(b.controller); integer(b.epoch, 1); integer(b.nonce, 1);
   integer(b.expires); demand(b.expires >= previous.tick && b.expires <= previous.tick + 1_000, 'EXPIRED_COMMAND');
-  const actionFields = previous.v === 2 ? { ...ACTION_FIELDS, ...INDUSTRY_FIELDS } : ACTION_FIELDS;
+  const actionFields = actionFieldsFor(previous.v);
   demand(typeof b.action === 'string' && Object.hasOwn(actionFields, b.action), 'UNKNOWN_ACTION'); fields(b.args, actionFields[b.action]);
   const oldIdentity = exists(previous.identities, b.principal);
   const delegated = b.controller !== 'root';

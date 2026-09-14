@@ -1,6 +1,6 @@
 /** Explicit v2 fixtures. Bootstrap machines embody real reserve units, not free duplication. */
 import { labGenesis, SWORD_CONTENT } from './genesis.mjs';
-import { hash, hashBytes, clone } from './canonical.mjs';
+import { demand, digest, hash, hashBytes, clone } from './canonical.mjs';
 import { validateRecipe } from './industry.mjs';
 export const FORGE_CONTENT = Buffer.from('Oatrix forge: four ore, two wood; one concurrent job.\n');
 export const PLAQUE_CONTENT = Buffer.from('Oatrix plaque: one ore, one wood; built from a human-readable recipe.\n');
@@ -39,4 +39,15 @@ export function recipeHash(state, id, revision = 1) {
   const matches = Object.entries(state.recipes).filter(([, r]) => r.definition.id === id && r.definition.revision === revision);
   if (matches.length !== 1) throw new Error('Recipe name is missing or ambiguous; use its exact digest.');
   return matches[0][0];
+}
+
+/** Fixture/CLI resolver: existing digest first, then name; prefixes remove collisions. */
+export function resolveRecipeRef(state, ref) {
+  demand(typeof ref === 'string' && ref.length > 0, 'UNKNOWN_RECIPE');
+  if (ref.startsWith('hash:')) {
+    const key = ref.slice(5); digest(key); demand(Object.hasOwn(state.recipes, key), 'UNKNOWN_RECIPE'); return key;
+  }
+  if (ref.startsWith('id:')) return recipeHash(state, ref.slice(3));
+  if (Object.hasOwn(state.recipes, ref)) return ref;
+  return recipeHash(state, ref);
 }
