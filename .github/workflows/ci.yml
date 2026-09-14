@@ -32,4 +32,6 @@ jobs:
       - run: npm test
       - run: npm run test:e2e
       - run: npm run demo
+      - run: npm run sweep
+      - run: npm run sweep:verify
       - run: npm run build:web

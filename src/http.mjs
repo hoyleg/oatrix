@@ -5,7 +5,8 @@ import { Gateway } from './gateway.mjs';
 import { actionFieldsFor } from './world.mjs';
 import { demand, fields, RuleError } from './canonical.mjs';
 const ASSETS = new Map([
-  ['/', ['index.html', 'text/html; charset=utf-8']], ['/app.mjs', ['app.mjs', 'text/javascript; charset=utf-8']],
+  ['/', ['index.html', 'text/html; charset=utf-8']], ['/index.html', ['index.html', 'text/html; charset=utf-8']],
+  ['/sweeps.html', ['sweeps.html', 'text/html; charset=utf-8']], ['/sweeps.mjs', ['sweeps.mjs', 'text/javascript; charset=utf-8']], ['/app.mjs', ['app.mjs', 'text/javascript; charset=utf-8']],
   ['/style.css', ['style.css', 'text/css; charset=utf-8']]
 ]);
 async function readJSON(req) {
@@ -15,7 +16,7 @@ async function readJSON(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw new RuleError('BAD_JSON'); }
 }
-export async function startHost(journal, { port = 0, report = null } = {}) {
+export async function startHost(journal, { port = 0, report = null, sweepReport = null } = {}) {
   let gateway, audience;
   const windows = new Map();
   const server = createServer(async (req, res) => {
@@ -35,6 +36,7 @@ export async function startHost(journal, { port = 0, report = null } = {}) {
         }
         if (url.pathname === '/api/state') return json(200, gateway.snapshot());
         if (url.pathname === '/api/health') return json(200, { mode: 'single-writer-loopback-lab', world: journal.state.world, head: journal.head });
+        if (url.pathname === '/sweeps.json') return sweepReport === null ? json(404, { error: 'NO_SWEEP_REPORT' }) : json(200, sweepReport);
         if (url.pathname === '/report.json') return json(200, report ?? { experiments: [] });
         if (url.pathname === '/api/events') {
           const after = Number(url.searchParams.get('after') ?? '0');

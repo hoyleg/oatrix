@@ -14,17 +14,21 @@ Not claimed: independently secure source, real provider delivery, Byzantine cons
 **Acceptance:** new failure tests for raw conservation, escrow/levies, signer epochs, signed-price races, pause semantics, journal replay and restoration; document accepted residual risks. Do not merge code and self-approve the same critical decision.
 **Exclude:** changing licence, issuing money, registering real identities or buying services.
 
-## P0.2 — explicit industry and capacity model
+## P0.2 — explicit industry and capacity model (implemented, PR #5 merged)
 
 **Deliverable:** versioned declarative recipe definitions and machine-capacity ownership, with deterministically enforced metering and human-readable documentation.
 **Acceptance:** copying a blueprint does not copy materials, active capacity or inventory; no production/dismantling loop mints U; generated recipes cannot expand authority; scarcity/demand assumptions are exposed.
 **Exclude:** arbitrary native code, new language invention as a prerequisite, open-ended model workers.
 
-## P0.3 — economic and retention sweeps
+## P0.3 — economic and retention sweeps (implemented candidate)
 
 **Deliverable:** deterministic scenario runner with parameter files, predeclared demand assumptions and machine-readable metrics.
 **Acceptance:** compare fees, levy rules, capacity concentration, storage losses and reactivation policies; distinguish accounting validity from artificial demand. Repeated seeds reproduce results.
 **Exclude:** claims about market adoption from scripted purchases.
+
+## Scoped-work mandate follow-up — review before activation
+
+The PR #5 review confirmed that legacy delegation caps U, not material use. Add a separate, explicitly opted-in work grant for cumulative materials/extraction, recipe/machine/provider scope and admission count. Preserve old replay semantics. Test rejected actions, cancellation/regrant churn, races and key rotation. This is a critical authority change and requires fresh review; do not silently substitute it into the reviewed baseline.
 
 ## P0.4 — production identity design, then a narrow signer spike
 

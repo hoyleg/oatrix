@@ -21,7 +21,7 @@ Work directly on a bounded issue/PR. Do not launch OpenClaw, Hermes, cloud codin
 
 ## Required checks
 
-Run `npm run verify` (syntax, unit/integration, process E2E, demo and static build). Add regression tests for changed semantics and failure modes. Review the generated console where UI changes occur. Inspect the final integrated diff, not just an earlier patch.
+Run `npm run verify` (syntax, unit/integration, process E2E, demo, bounded sweeps/reproduction and static build). Add regression tests for changed semantics and failure modes. Review the generated console where UI changes occur. Inspect the final integrated diff, not just an earlier patch.
 
 If a test fails, investigate. Do not weaken invariants, remove adversarial cases or increase a limit merely to make your candidate pass. Record any test-policy change separately for human review.
 
