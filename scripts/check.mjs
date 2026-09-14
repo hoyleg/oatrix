@@ -1,7 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { spawnSync } from 'node:child_process';
-const roots = ['src', 'test', 'scripts', 'experiments', 'web'];
-for (const root of roots) for (const file of await readdir(root)) if (file.endsWith('.mjs')) {
+const roots = ['src', 'test', 'scripts', 'experiments', 'web', 'e2e'];
+for (const root of roots) for (const file of await readdir(root, { recursive: true })) if (file.endsWith('.mjs')) {
   const p = `${root}/${file}`;
   const result = spawnSync(process.execPath, ['--check', p], { encoding: 'utf8' });
   if (result.status !== 0) { console.error(result.stderr); process.exit(1); }

@@ -1,6 +1,6 @@
-# Laboratory protocol v1
+# Laboratory protocol: envelope v1, rules v1/v2
 
-This is an executable-specification protocol, not a reviewed network standard. The complete accepted action vocabulary is `ACTIONS` in `src/world.mjs`; tests exercise both accepted and rejected cases.
+This is an executable-specification protocol, not a reviewed network standard. The complete vocabulary is `actionFieldsFor(state.v)` in `src/world.mjs`: it returns action names and exact argument fields for that rules version. `actionsFor(state.v)` returns names only; the legacy `ACTIONS` export remains v1-only for compatibility. `GET /api/protocol` publishes the active vocabulary. Command-envelope `v: 1` is independent of rules/state `v: 2`. Tests exercise both accepted and rejected cases.
 
 ## Command envelope
 
@@ -29,7 +29,7 @@ Canonical data uses sorted object keys, bounded nesting, integers, strings, arra
 
 ## Principal and controller permissions
 
-Root authority is bound to a stable genesis principal, not a provider username. Delegates can be granted only a subset of `transfer`, `startJob`, `buy` and `settleService`, with expiry and a cumulative spending cap. They cannot delegate further, rotate the root, approve a release, pause the world or transfer asset title directly. A human takes control by revoking the relevant delegation; prior finalised obligations remain.
+Root authority is bound to a stable genesis principal, not a provider username. Delegates can be granted only a subset of `transfer`, `startJob`, `buy` and `settleService`, with expiry and a cumulative **currency** spending cap. This legacy grant does not cap material inputs, restrict recipe/provider/machine choices, or guarantee a useful outcome. Do not treat a small U budget as a material-safety boundary. A separate scoped-grant extension is required before untrusted production workers. They cannot delegate further, rotate the root, approve a release, pause the world or transfer asset title directly. A human takes control by revoking the relevant delegation; prior finalised obligations remain.
 
 A login session supplies identity context but cannot create a valid command signature. Direct signed relay remains possible without a session. Hosting, root control, real-world identity and citizenship are not assumed to be the same thing.
 
@@ -68,6 +68,7 @@ An asset locked for sale cannot be deployed or offered twice. Selling a currentl
 
 ## HTTP surface (loopback development only)
 
+- `GET /api/protocol`: world, state/rules version, envelope version and exact action fields.
 - `GET /api/health`, `/api/state`, `/api/events?after=0`: public fixture state and paginated events.
 - `POST /api/challenges`: `{ "principal": "alice" }` returns a short-lived audience-bound challenge.
 - `POST /api/sessions`: `{ "challenge": ..., "signature": ... }` returns an opaque host-local token.
@@ -75,3 +76,9 @@ An asset locked for sale cannot be deployed or offered twice. Selling a currentl
 - `GET /`, `/app.mjs`, `/style.css`, `/report.json`: read-only experiment viewer.
 
 All POSTs require JSON. Requests are capped at 32 KiB, with host/origin checks and a simple local mutation rate limit. The service returns structured rule error codes, not internal stack traces. There is no TLS termination, production authentication UI, general blob API or private-data endpoint.
+
+## Rules v2 industry and CLI references
+
+Rules v2 adds `publishRecipe`, `cancelJob`, `dismantle`, and replaces the `startJob` fields with `id`, `recipe`, `machine`, `provider`, `termsHash`. See `docs/machinery-v0.2.md` for semantics. Signed jobs always carry an exact recipe digest; a name is never authoritative.
+
+The public-fixture CLI resolves an existing digest before a unique recipe name. `hash:<digest>` requires an existing digest; `id:<name>` forces name lookup. Thus a legal 64-character hexadecimal recipe name is supported, and collisions or duplicate names can be resolved explicitly rather than guessed.

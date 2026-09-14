@@ -1,6 +1,7 @@
 /** CLI for the PUBLIC FIXTURE IDENTITIES only. Never load real keys into this tool. */
 import { fixtureKey, command, signPayload } from '../src/identity.mjs';
 import { demand, hash } from '../src/canonical.mjs';
+import { resolveRecipeRef } from '../src/industrial-genesis.mjs';
 const args = process.argv.slice(2);
 if (args.length < 3 || args.length > 4) {
   console.error('Usage: node scripts/client.mjs <alice|bob|founder|...> <action> <JSON-args> [http://127.0.0.1:8787]');
@@ -12,7 +13,7 @@ const request = async (path, body, token) => {
   const reply = await fetch(host.origin + path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: 'Bearer ' + token } : {}) }, body: JSON.stringify(body) });
   const data = await reply.json(); demand(reply.ok, data.error ?? 'HTTP_ERROR'); return data;
 };
-const { state } = await request('/api/state'); demand(state.world === 'oatrix-lab-v1', 'NOT_A_LAB');
+const { state } = await request('/api/state'); demand(['oatrix-lab-v1', 'oatrix-lab-v2'].includes(state.world), 'NOT_A_LAB');
 const c = await request('/api/challenges', { principal });
 demand(c.audience === host.origin && c.world === state.world && c.principal === principal, 'UNEXPECTED_CHALLENGE');
 const key = fixtureKey(principal), session = await request('/api/sessions', { challenge: c, signature: signPayload('OATRIX-LOGIN-1', c, key) });
@@ -20,6 +21,14 @@ let payload = JSON.parse(json);
 if (action === 'startJob') {
   const provider = payload.provider ?? 'host_a';
   payload = { provider, termsHash: hash(state.executionProviders[provider]), ...payload };
+  if (state.v === 2) {
+    payload.recipe = resolveRecipeRef(state, payload.recipe);
+    demand(Object.hasOwn(state.recipes, payload.recipe), 'UNKNOWN_RECIPE');
+    if (!payload.machine) {
+      const candidates = Object.entries(state.assets).filter(([, a]) => a.owner === principal && a.machineClass === state.recipes[payload.recipe].definition.machineClass && a.busy === null && a.locked === null);
+      demand(candidates.length === 1, 'SPECIFY_AN_AVAILABLE_MACHINE'); payload.machine = candidates[0][0];
+    }
+  }
 }
 const envelope = command(state, principal, action, payload, key);
 console.log(JSON.stringify(await request('/api/commands', envelope, session.token), null, 2));

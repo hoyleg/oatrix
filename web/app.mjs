@@ -30,6 +30,20 @@ function render() {
   if (Object.keys(s.assets).length === 0) $('property').textContent = 'No manufactured assets yet.';
   $('findings').replaceChildren(...e.findings.map(x => { const li = document.createElement('li'); li.textContent = x; return li; }));
   $('head').textContent = f.head;
+  $('machinery-panel').hidden = s.v !== 2;
+  if (s.v === 2) {
+    $('machines').replaceChildren(...Object.entries(s.assets).filter(([, a]) => a.kind === 'machine').map(([id, a]) => {
+      const item = document.createElement('div'); item.className = 'asset';
+      item.textContent = `${id} · ${a.machineClass} · owner: ${a.owner} · ${a.busy ? 'running ' + a.busy : a.locked ? 'offered for sale' : 'idle'}`; return item;
+    }));
+    $('recipes').replaceChildren(...Object.entries(s.recipes).map(([digest, entry]) => {
+      const details = document.createElement('details'), title = document.createElement('summary'), body = document.createElement('pre');
+      title.textContent = `${entry.definition.label} · revision ${entry.definition.revision} · ${entry.definition.duration} tick(s)`;
+      body.textContent = `Digest: ${digest}\nAuthor: ${entry.author}\n\n${JSON.stringify(entry.definition, null, 2)}`;
+      details.append(title, body); return details;
+    }));
+  }
+
 }
 $('experiment').addEventListener('change', e => { chosen = Number(e.target.value); step = 0; render(); });
 $('step').addEventListener('input', e => { step = Number(e.target.value); render(); });
@@ -40,5 +54,5 @@ try {
   const report = await response.json(); experiments = report.experiments;
   if (!Array.isArray(experiments) || !experiments.length) throw new Error('No experiments available. Run npm run build:web or npm start.');
   $('experiment').replaceChildren(...experiments.map((e, i) => { const option = document.createElement('option'); option.value = String(i); option.textContent = e.title; return option; }));
-  render();
+  chosen = Math.max(0, experiments.findIndex(e => e.id === 'machinery')); $('experiment').value = String(chosen); render();
 } catch (e) { $('error').textContent = `Unable to load the experiment report: ${e.message}`; }

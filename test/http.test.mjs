@@ -28,7 +28,7 @@ test('web console and exported experiment report are served without third-party 
   const l = lab(), h = await startHost(l.journal, { report: runExperiments().report }); t.after(() => h.close());
   const html = await fetch(h.url); assert.equal(html.status, 200); assert.match(html.headers.get('Content-Security-Policy'), /frame-ancestors 'none'/);
   assert.match(await html.text(), /OATRIX/);
-  const report = await (await fetch(h.url + '/report.json')).json(); assert.equal(report.experiments.length, 6);
+  const report = await (await fetch(h.url + '/report.json')).json(); assert.equal(report.experiments.length, 7);
   for (const path of ['/app.mjs', '/style.css', '/api/state', '/api/health', '/api/events']) assert.equal((await fetch(h.url + path)).status, 200);
   assert.equal((await fetch(h.url + '/not-a-file')).status, 404);
 });

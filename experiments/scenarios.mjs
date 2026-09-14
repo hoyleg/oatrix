@@ -6,6 +6,7 @@ import { hash } from '../src/canonical.mjs';
 import { Gateway } from '../src/gateway.mjs';
 import { ContentStore } from '../src/storage.mjs';
 import { EvidenceNotebook } from '../src/evidence.mjs';
+import { runMachineryExperiment } from './machinery.mjs';
 
 function experiment(id, title, question) {
   const journal = new Journal(labGenesis()), frames = [], findings = [];
@@ -81,5 +82,6 @@ export function runExperiments() {
   const selected = notebook.retrieve('Rent has been abolished');
   evidence.capture('One thousand messages, one declared source family', `${selected.claims.length} source family selected. The claim remains unverified.`);
   evidence.findings.push('The reference notebook retains provenance and an attention cap.', 'No conversational message can mutate the ledger.', 'Undisclosed coordination and persuasive falsehoods are NOT solved.'); reports.push(evidence.report());
-  return { report: { schema: 1, name: 'Oatrix bounded lab', version: '0.1.0', experiments: reports }, journal: industry.journal };
+  const machinery = runMachineryExperiment(); reports.push(machinery.report);
+  return { report: { schema: 1, name: 'Oatrix bounded lab', version: '0.2.0', experiments: reports }, journal: machinery.journal };
 }

@@ -21,12 +21,12 @@ Work directly on a bounded issue/PR. Do not launch OpenClaw, Hermes, cloud codin
 
 ## Required checks
 
-Run `npm run check`, `npm test`, `npm run demo`, and `npm run build:web`. Add regression tests for changed semantics and failure modes. Review the generated console where UI changes occur. Inspect the final integrated diff, not just an earlier patch.
+Run `npm run verify` (syntax, unit/integration, process E2E, demo and static build). Add regression tests for changed semantics and failure modes. Review the generated console where UI changes occur. Inspect the final integrated diff, not just an earlier patch.
 
 If a test fails, investigate. Do not weaken invariants, remove adversarial cases or increase a limit merely to make your candidate pass. Record any test-policy change separately for human review.
 
 ## Handoff
 
-Report the scope, files changed, actual commands and results, material caveats, and one concrete next bounded step. Label proposals as proposals. Do not merge a critical change merely because you authored and tested it. Future high-impact contributions need review by a different accountable control group.
+Report the scope, files changed, actual commands and results, material caveats, and one concrete next bounded step. Explicitly state any action required from the user, with commands or a precise decision; never expect the user to infer setup, review or merge obligations from the delivery. State when no user action is required. Label proposals as proposals. Do not merge a critical change merely because you authored and tested it. Future high-impact contributions need review by a different accountable control group.
 
 Do not alter repository permissions, branch protection, licensing, monetary issuance, founder rights or external deployments without specific authority. GitHub governance is not yet enforced by the in-world approval model.

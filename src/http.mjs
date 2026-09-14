@@ -2,6 +2,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { Gateway } from './gateway.mjs';
+import { actionFieldsFor } from './world.mjs';
 import { demand, fields, RuleError } from './canonical.mjs';
 const ASSETS = new Map([
   ['/', ['index.html', 'text/html; charset=utf-8']], ['/app.mjs', ['app.mjs', 'text/javascript; charset=utf-8']],
@@ -28,6 +29,10 @@ export async function startHost(journal, { port = 0, report = null } = {}) {
       demand(!req.headers.origin || req.headers.origin === audience, 'ORIGIN_REJECTED');
       const url = new URL(req.url, audience);
       if (req.method === 'GET') {
+        if (url.pathname === '/api/protocol') {
+          const state = journal.state;
+          return json(200, { world: state.world, stateVersion: state.v, envelopeVersion: 1, actions: actionFieldsFor(state.v) });
+        }
         if (url.pathname === '/api/state') return json(200, gateway.snapshot());
         if (url.pathname === '/api/health') return json(200, { mode: 'single-writer-loopback-lab', world: journal.state.world, head: journal.head });
         if (url.pathname === '/report.json') return json(200, report ?? { experiments: [] });
