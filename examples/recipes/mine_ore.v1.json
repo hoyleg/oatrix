@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "id": "mine_ore",
+  "revision": 1,
+  "label": "Extract ore",
+  "duration": 1,
+  "machineClass": "extractor",
+  "inputs": {
+    "ore": 0,
+    "wood": 0
+  },
+  "output": {
+    "type": "raw",
+    "raw": "ore",
+    "amount": 1
+  }
+}

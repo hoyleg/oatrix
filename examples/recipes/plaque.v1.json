@@ -1,0 +1,18 @@
+{
+  "v": 1,
+  "id": "plaque",
+  "revision": 1,
+  "label": "Workshop name plaque",
+  "duration": 2,
+  "machineClass": "workbench",
+  "inputs": {
+    "ore": 1,
+    "wood": 1
+  },
+  "output": {
+    "type": "asset",
+    "kind": "plaque",
+    "content": "0ba4e00fc45527b646871eb14cf3d7a5ea91f1ce16148e9c2d116368a7887038",
+    "machineClass": null
+  }
+}

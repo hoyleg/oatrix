@@ -1,0 +1,18 @@
+{
+  "v": 1,
+  "id": "sword",
+  "revision": 1,
+  "label": "Forge a sword",
+  "duration": 3,
+  "machineClass": "forge",
+  "inputs": {
+    "ore": 2,
+    "wood": 1
+  },
+  "output": {
+    "type": "asset",
+    "kind": "sword",
+    "content": "78685931e537e261e5b4f687ba57bc4dd8c98cacaf85f32e9ffebb2cc69a614c",
+    "machineClass": null
+  }
+}

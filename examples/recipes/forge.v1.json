@@ -1,0 +1,18 @@
+{
+  "v": 1,
+  "id": "forge",
+  "revision": 1,
+  "label": "Build a forge",
+  "duration": 2,
+  "machineClass": "workbench",
+  "inputs": {
+    "ore": 4,
+    "wood": 2
+  },
+  "output": {
+    "type": "asset",
+    "kind": "machine",
+    "content": "9c22ae3357cc052f1455532bd4cc5946a03e4f7ee53aa2ee1075735ea382cc48",
+    "machineClass": "forge"
+  }
+}

@@ -30,5 +30,6 @@ jobs:
           node-version: ${{ matrix.node }}
       - run: npm run check
       - run: npm test
+      - run: npm run test:e2e
       - run: npm run demo
       - run: npm run build:web

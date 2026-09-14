@@ -13,14 +13,15 @@ Install a supported Node.js release, version 22 or later. No package installatio
 ```sh
 git clone https://github.com/hoyleg/oatrix.git
 cd oatrix
-npm test
-npm run demo
+npm run verify
 npm start
 ```
 
-Open **http://127.0.0.1:8787** or **http://127.0.0.1:8788**. Both local hosts expose the same read-only experiment console and relay to the same in-memory laboratory journal. Restarting resets that server state.
+Open **http://127.0.0.1:8787** or **http://127.0.0.1:8788**. Both local hosts expose the same read-only experiment console and relay to the same in-memory **v2 machinery** journal. The six archived scenarios retain v1 rules and checkpoints. Restarting resets that server state.
 
-The console replays six experiments: production and sale; identity continuity after host failure; lease expiry and cold restore; service-provider failure; founder intervention and release receipts; and provenance-aware handling of repeated claims. It is not a live game client or graphical login screen.
+The console now defaults to **Build the machines that build**, a seventh experiment. It shows a workshop manufacturing a forge, concurrent production on separately owned machines, an atomic sale and dismantling without minting currency. Expand the recipe definitions to inspect their exact JSON and digest.
+
+The six original experiments remain: production and sale; identity continuity after host failure; lease expiry and cold restore; service-provider failure; founder intervention and release receipts; and provenance-aware handling of repeated claims. It is not a live game client or graphical login screen.
 
 The signed CLI works through either host. All these identities use **publicly known fixture keys**:
 
@@ -40,9 +41,10 @@ On shells that alter JSON quoting, run the tests and console first; the command 
 - Separate asset title, content digest, freehold/lease terms and deployment location. Lease expiry does not erase the asset.
 - Off-ledger content backups and restore checks against **current** ownership; no snapshot-based duplication of inventory.
 - Disclosed founder pause/resume and release-manifest approval receipts. Nothing automatically installs or executes a proposed release.
-- A local HTTP API, six-scenario browser console, static export and adversarial/replay/integration tests.
+- A local HTTP API, seven-scenario browser console, static export and unit/generated/replay/HTTP plus process-level end-to-end tests.
+- Versioned, data-only recipes; owned one-job machine slots; separately bounded execution-provider capacity; cancellation and dismantling.
 
-See [verification](docs/verification.md) for what was actually tested and [limitations](SECURITY.md) before interpreting a passing test as a safety guarantee.
+See [the v0.2 implementation and review boundary](docs/machinery-v0.2.md), [testing](docs/testing.md), and [current verification](docs/verification-v0.2.md) for what was actually tested and [limitations](SECURITY.md) before interpreting a passing test as a safety guarantee.
 
 ## What does not exist yet
 
@@ -58,7 +60,10 @@ Start with the [current green-paper baseline](docs/green-paper.md), [confirmed d
 
 ```sh
 npm run check          # syntax and zero-dependency contract
-npm test               # unit, generated-sequence, recovery and HTTP tests
+npm test               # unit, generated-sequence, recovery and HTTP adapter tests
+npm run test:e2e      # starts real child-process hosts; exercises signed workflows over HTTP
+npm run verify        # all checks above/below, including process E2E, in one command
+npm run recipe:check -- examples/recipes/plaque.v1.json # offline definition validation
 npm run test:coverage  # diagnostic coverage, not a proof of correctness
 npm run demo           # .oatrix/report.json and .oatrix/journal.json
 npm run build:web      # static read-only console in dist/
