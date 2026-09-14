@@ -31,6 +31,10 @@ node scripts/client.mjs alice transfer '{"to":"bob","amount":10}' http://127.0.0
 
 On shells that alter JSON quoting, run the tests and console first; the command above uses standard POSIX/PowerShell single-quoted JSON.
 
+## Separate authority candidate on this branch
+
+This review branch also contains **opt-in rules v3 work mandates**, with material/extraction and job limits as well as U budgets and exact recipe/machine/provider scope. The ordinary server remains v2; no migration is performed. Run `npm run demo:work` for the isolated demonstration. See [the scope and fresh-review brief](docs/work-mandates-v0.1.md) and [actual verification](docs/verification-work-mandates.md). This critical change is not approved merely because its tests pass.
+
 ## Compare the rules under adverse conditions
 
 Open **http://127.0.0.1:8787/sweeps.html** after `npm start`. The comparison page contains **18 configurations × 2 fixed seeds**: no buyer demand, higher costs, concentrated capacity, tight budgets, public funding shortfall, lease/freehold return, missing or correlated backups, and service default. Select any row to inspect its exact inputs, metrics, assumptions and checkpoints.
