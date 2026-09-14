@@ -18,7 +18,7 @@ test('action discovery separates envelope, v1 and v2 rules and their exact argum
   }
   assert.deepEqual(actionFieldsFor(1).startJob, ['id', 'recipe', 'provider', 'termsHash']);
   assert.deepEqual(actionFieldsFor(2).startJob, ['id', 'recipe', 'machine', 'provider', 'termsHash']);
-  for (const version of [0, 3, '2', '__proto__', null]) assert.throws(() => actionsFor(version), /RULES_VERSION/);
+  for (const version of [0, 4, '2', '__proto__', null]) assert.throws(() => actionsFor(version), /RULES_VERSION/);
   assert.throws(() => actionFieldsFor(2).startJob.push('mint'), TypeError);
   assert.throws(() => { actionFieldsFor(2).mint = []; }, TypeError);
 });

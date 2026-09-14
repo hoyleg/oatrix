@@ -1,6 +1,7 @@
 /** Rules v2: declarative recipes, owned machines and provider execution slots.
  * Recipe data is never evaluated as code. All side effects remain fixed here.
  */
+import { consumeWork } from './work-mandates.mjs';
 import { demand, integer, identifier, text, digest, fields, clone, hash, sum } from './canonical.mjs';
 
 export const INDUSTRY_FIELDS = Object.freeze({
@@ -75,6 +76,7 @@ export function industryAction(s, principal, action, args, authority, { debit, p
     demand(a.termsHash === hash(provider), 'TERMS_CHANGED');
     demand(provider.classes.includes(r.machineClass), 'PROVIDER_CAPABILITY');
     demand(Object.values(s.jobs).filter(j => j.status === 'running' && j.provider === a.provider).length < provider.maxConcurrent, 'PROVIDER_CAPACITY');
+    if (s.v === 3 && authority !== null && Object.hasOwn(authority, 'work')) consumeWork(authority, a, r);
     const extracted = { ore: 0, wood: 0 };
     for (const raw of MATERIALS) {
       demand(s.inventory[principal][raw] >= r.inputs[raw], 'MISSING_INPUTS');
@@ -122,7 +124,7 @@ export function finishIndustryTick(s) {
   }
 }
 export function assertIndustry(s) {
-  demand(s.v === 2, 'RULES_VERSION');
+  demand(s.v === 2 || s.v === 3, 'RULES_VERSION');
   demand(Object.keys(s.recipes).length <= MAX_RECIPES, 'RECIPE_LIMIT');
   for (const [key, entry] of Object.entries(s.recipes)) {
     fields(entry, ['author', 'definition']); validateRecipe(entry.definition);

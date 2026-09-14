@@ -51,3 +51,8 @@ export function resolveRecipeRef(state, ref) {
   if (Object.hasOwn(state.recipes, ref)) return ref;
   return recipeHash(state, ref);
 }
+
+/** Experimental v3 fixture; no implicit migration of an existing v1/v2 world. */
+export function workMandateGenesis() {
+  const s = industrialGenesis(); s.v = 3; s.world = 'oatrix-lab-v3'; return s;
+}

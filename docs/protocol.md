@@ -83,3 +83,7 @@ All POSTs require JSON. Requests are capped at 32 KiB, with host/origin checks a
 Rules v2 adds `publishRecipe`, `cancelJob`, `dismantle`, and replaces the `startJob` fields with `id`, `recipe`, `machine`, `provider`, `termsHash`. See `docs/machinery-v0.2.md` for semantics. Signed jobs always carry an exact recipe digest; a name is never authoritative.
 
 The public-fixture CLI resolves an existing digest before a unique recipe name. `hash:<digest>` requires an existing digest; `id:<name>` forces name lookup. Thus a legal 64-character hexadecimal recipe name is supported, and collisions or duplicate names can be resolved explicitly rather than guessed.
+
+## Experimental rules v3 (review candidate, not default activation)
+
+`actionFieldsFor(3)` adds `delegateWork`. Its exact fields and cumulative work-only permissions are specified in `docs/work-mandates-v0.1.md`. Rules v1/v2 keep their previous vocabularies, semantics and histories; no implicit migration is implemented. Default server/comparison fixtures remain v2. `workMandateGenesis()` explicitly selects v3. A legacy `delegate` grant stays U-only; integrations must not silently fall back to it when material-aware delegation was requested.

@@ -1,0 +1,10 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { runWorkMandateDemo } from '../experiments/work-mandates.mjs';
+if (process.argv.length !== 2) throw new Error('Usage: npm run demo:work');
+const { report, journal } = runWorkMandateDemo();
+await mkdir('.oatrix', { recursive: true });
+await writeFile('.oatrix/work-mandates.json', JSON.stringify(report, null, 2) + '\n');
+await writeFile('.oatrix/work-mandates-journal.json', JSON.stringify(journal, null, 2) + '\n');
+for (const frame of report.frames) console.log(frame.label);
+console.log(`Rejected: ${report.rejected}. Replay verified: ${report.head}`);
+console.log('Saved .oatrix/work-mandates.json and its replay journal. Default npm start still uses v2.');

@@ -3,8 +3,9 @@
  */
 import { startHost } from '../src/http.mjs';
 import { Journal } from '../src/journal.mjs';
-import { industrialGenesis } from '../src/industrial-genesis.mjs';
-const journal = new Journal(industrialGenesis()), hosts = [], stopped = new Set();
+import { industrialGenesis, workMandateGenesis } from '../src/industrial-genesis.mjs';
+if (process.argv.length > 3 || (process.argv[2] && process.argv[2] !== '--work-mandates')) throw new Error('Unknown fixture option.');
+const journal = new Journal(process.argv[2] === '--work-mandates' ? workMandateGenesis() : industrialGenesis()), hosts = [], stopped = new Set();
 async function stop(index) { if (!stopped.has(index)) { stopped.add(index); await hosts[index].close(); } }
 async function shutdown() { for (let i = 0; i < hosts.length; i++) await stop(i); }
 try {
