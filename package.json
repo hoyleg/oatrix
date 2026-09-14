@@ -15,11 +15,12 @@
     "start": "node scripts/serve.mjs",
     "build:web": "node scripts/build-web.mjs",
     "check": "node scripts/check.mjs",
-    "test:e2e": "node --test e2e/hosts.e2e.mjs e2e/mandates.e2e.mjs",
+    "test:e2e": "node --test e2e/hosts.e2e.mjs e2e/mandates.e2e.mjs e2e/signer.e2e.mjs",
     "recipe:check": "node scripts/recipe-check.mjs",
-    "verify": "npm run check && npm test && npm run test:e2e && npm run demo && npm run demo:work && npm run sweep && npm run sweep:verify && npm run build:web",
+    "verify": "npm run check && npm test && npm run test:e2e && npm run demo && npm run demo:work && npm run demo:signer && npm run sweep && npm run sweep:verify && npm run build:web",
     "sweep": "node scripts/sweep.mjs",
     "sweep:verify": "node scripts/sweep-verify.mjs",
-    "demo:work": "node scripts/work-demo.mjs"
+    "demo:work": "node scripts/work-demo.mjs",
+    "demo:signer": "node scripts/signer-demo.mjs"
   }
 }
