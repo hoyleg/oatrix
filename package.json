@@ -1,6 +1,6 @@
 {
   "name": "oatrix-lab",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "A bounded deterministic laboratory for an industrial shared reality",
@@ -17,6 +17,8 @@
     "check": "node scripts/check.mjs",
     "test:e2e": "node --test e2e/hosts.e2e.mjs",
     "recipe:check": "node scripts/recipe-check.mjs",
-    "verify": "npm run check && npm test && npm run test:e2e && npm run demo && npm run build:web"
+    "verify": "npm run check && npm test && npm run test:e2e && npm run demo && npm run sweep && npm run sweep:verify && npm run build:web",
+    "sweep": "node scripts/sweep.mjs",
+    "sweep:verify": "node scripts/sweep-verify.mjs"
   }
 }

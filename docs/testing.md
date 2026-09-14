@@ -6,7 +6,7 @@ The default developer acceptance command is:
 npm run verify
 ```
 
-It runs syntax checks, the full unit/integration/generated-action suite, process-level E2E, deterministic demos and the static export. No package installation, browser driver, Docker, model credentials, external services or administrator privileges are needed. GitHub CI runs the process E2E suite as well as the existing checks on Node 22/Linux, Node 24/Linux and Node 24/Windows.
+It runs syntax checks, the full unit/integration/generated-action suite, process-level E2E, deterministic demos, bounded parameter sweeps, exact report reproduction and the static export. No package installation, browser driver, Docker, model credentials, external services or administrator privileges are needed. GitHub CI runs the process E2E suite as well as the existing checks on Node 22/Linux, Node 24/Linux and Node 24/Windows.
 
 ## Unit and adapter integration: `npm test`
 
@@ -31,3 +31,9 @@ Playwright was an already-present environment inspection tool; it is not a repos
 ## What is not established
 
 Passing tests do not prove independent review, network consensus, real compute delivery, live economics, durable storage, privacy, production identity, quantum resilience or useful agent judgement. Those need separate implementations and evidence. No test count is a permanent acceptance target; preserve the substantive checks when the suite grows.
+
+## Parameter comparisons: `npm run sweep` and `npm run sweep:verify`
+
+P0.3 adds 33 tests and a 36-run default suite. The verifier rebuilds the whole report from its inputs; a rehashed false metric still fails. Additional tests independently derive totals from accepted commands and holdings, exercise no-demand and correlated-failure cases, and run CLI/report export in child processes. Bounded inputs prevent a report file quietly requesting an unlimited simulation. Default verification includes this work on all CI platforms.
+
+See `docs/verification-v0.3.md` for the newer 72 row/viewport UI checks, their offline-fixture limitation, and exact analysis caveats. A passing comparison does not establish that its demand or failure assumptions describe the real world.

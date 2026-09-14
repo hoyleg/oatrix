@@ -73,7 +73,8 @@ An asset locked for sale cannot be deployed or offered twice. Selling a currentl
 - `POST /api/challenges`: `{ "principal": "alice" }` returns a short-lived audience-bound challenge.
 - `POST /api/sessions`: `{ "challenge": ..., "signature": ... }` returns an opaque host-local token.
 - `POST /api/commands`: signed envelope; optional `Authorization: Bearer <token>` additionally checks session identity.
-- `GET /`, `/app.mjs`, `/style.css`, `/report.json`: read-only experiment viewer.
+- `GET /`, `/index.html`, `/app.mjs`, `/style.css`, `/report.json`: read-only experiment viewer.
+- `GET /sweeps.html`, `/sweeps.mjs`, `/sweeps.json`: optional read-only precomputed comparison report; no submission endpoint or live economy mutation.
 
 All POSTs require JSON. Requests are capped at 32 KiB, with host/origin checks and a simple local mutation rate limit. The service returns structured rule error codes, not internal stack traces. There is no TLS termination, production authentication UI, general blob API or private-data endpoint.
 

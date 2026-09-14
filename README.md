@@ -31,6 +31,29 @@ node scripts/client.mjs alice transfer '{"to":"bob","amount":10}' http://127.0.0
 
 On shells that alter JSON quoting, run the tests and console first; the command above uses standard POSIX/PowerShell single-quoted JSON.
 
+## Compare the rules under adverse conditions
+
+Open **http://127.0.0.1:8787/sweeps.html** after `npm start`. The comparison page contains **18 configurations × 2 fixed seeds**: no buyer demand, higher costs, concentrated capacity, tight budgets, public funding shortfall, lease/freehold return, missing or correlated backups, and service default. Select any row to inspect its exact inputs, metrics, assumptions and checkpoints.
+
+```sh
+npm run sweep         # JSON, summary and separate CSV tables in .oatrix/sweeps/
+npm run sweep:verify  # recompute and reject an inconsistent report
+```
+
+For custom bounded configurations and optional replay journals, see [P0.3 experiments](docs/experiments-v0.3.md). No LLM, cloud account or additional installation is used. The page compares simulated consequences; scripted purchases are not evidence of demand.
+
+Existing checkout, including one left on the old review branch: stop the server, then run:
+
+```sh
+git fetch origin
+git switch main
+git pull --ff-only
+npm run verify
+npm start
+```
+
+Git will stop rather than overwrite conflicting local changes. Do not use a hard reset to resolve that automatically.
+
 ## What exists now
 
 - Pure integer-based world transitions, signed commands and a hash-linked replayable journal.
@@ -42,9 +65,10 @@ On shells that alter JSON quoting, run the tests and console first; the command 
 - Off-ledger content backups and restore checks against **current** ownership; no snapshot-based duplication of inventory.
 - Disclosed founder pause/resume and release-manifest approval receipts. Nothing automatically installs or executes a proposed release.
 - A local HTTP API, seven-scenario browser console, static export and unit/generated/replay/HTTP plus process-level end-to-end tests.
+- Bounded reproducible comparison suites with declared assumptions, actual ledger replay and a read-only browser comparison view.
 - Versioned, data-only recipes; owned one-job machine slots; separately bounded execution-provider capacity; cancellation and dismantling.
 
-See [the v0.2 implementation and review boundary](docs/machinery-v0.2.md), [testing](docs/testing.md), and [current verification](docs/verification-v0.2.md) for what was actually tested and [limitations](SECURITY.md) before interpreting a passing test as a safety guarantee.
+See [the v0.2 implementation and review boundary](docs/machinery-v0.2.md), [testing](docs/testing.md), and [current verification](docs/verification-v0.3.md) for what was actually tested and [limitations](SECURITY.md) before interpreting a passing test as a safety guarantee.
 
 ## What does not exist yet
 
@@ -62,7 +86,7 @@ Start with the [current green-paper baseline](docs/green-paper.md), [confirmed d
 npm run check          # syntax and zero-dependency contract
 npm test               # unit, generated-sequence, recovery and HTTP adapter tests
 npm run test:e2e      # starts real child-process hosts; exercises signed workflows over HTTP
-npm run verify        # all checks above/below, including process E2E, in one command
+npm run verify        # all checks above/below, including process E2E and sweep reproduction, in one command
 npm run recipe:check -- examples/recipes/plaque.v1.json # offline definition validation
 npm run test:coverage  # diagnostic coverage, not a proof of correctness
 npm run demo           # .oatrix/report.json and .oatrix/journal.json
