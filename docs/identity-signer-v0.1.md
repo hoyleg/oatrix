@@ -8,11 +8,13 @@ The durable Oatrix principal is not a node account and not a web session. A prin
 
 The experimental `PortableSigner` owns the root private key outside the gateway. It exposes public metadata and signatures only. For a command, the caller supplies an explicit intent plus the exact world-state head it reviewed. The signer constructs the command body itself, using the principal, current root epoch and nonce from that snapshot, validates the action/argument shape against its local Oatrix rules, and signs the result. A gateway can relay the signed envelope but cannot change the principal, action, destination, amount or other signed arguments without invalidating the signature.
 
-This does **not** prove that a hostile gateway has supplied the canonical federation state. Before P1 there is still one authoritative laboratory writer. The `expectedHead` check prevents substitution between review and signing; independent consensus/checkpoint verification is a separate problem.
+This does **not** prove that a hostile gateway has supplied the canonical federation state. Before P1 there is still one authoritative laboratory writer. Signed **envelope v2** carries both `expectedHead` and `expectedStateHash` under the separate `OATRIX-COMMAND-2` signature domain. `Journal.submit` supplies its actual predecessor to the reducer, which checks both pins before any state change. An intervening action by any principal makes this approval stale, even if the signer's nonce and root epoch did not change. Obtain fresh state and fresh approval; never silently refresh or downgrade the signature. `transition` called directly without head context rejects a pinned envelope. Replay enforces the same preconditions.
+
+Existing envelope v1 remains explicitly unpinned for historical replay and legacy clients. It is not equivalent to reviewed-head approval. Stripping the v2 fields or changing its version/domain invalidates the signature. HTTP discovery advertises both versions; older nodes reject v2 rather than reinterpret it. This is a new command-admission capability, not a migration of economic rules or a claim of canonical-state proof. A forged snapshot with an unchanged head also fails at a conforming journal because its signed state digest differs. Independent consensus/checkpoint verification remains a separate problem.
 
 ## Host login and provider competition
 
-Login challenges remain host-origin-specific. The signer has an explicit audience allow-list and signs a challenge only when its world, principal, host origin, expiry and epoch match. A signature for host A is not reusable as host B's login approval. The same durable principal can nevertheless sign separate challenges from hosts A and B, so changing gateway provider does not require changing identity.
+Login challenges remain host-origin-specific. The signer has an explicit audience allow-list and checks world, principal, allowed host origin, expiry and a positive epoch number before signing. It does not know the current root epoch independently: `Gateway.login` validates the challenge epoch and signature against the current journal. An old signer can still generate a stale login signature; a conforming gateway rejects it. A signature for host A is not reusable as host B's login approval. The same durable principal can nevertheless sign separate challenges from hosts A and B, so changing gateway provider does not require changing identity.
 
 Only HTTPS origins are accepted in the general case. Plain HTTP is restricted to loopback development origins (`127.0.0.1`, `localhost`, `::1`). Adding a provider to the signer's allow-list is an owner-side configuration act, not something a remote page may silently perform.
 
@@ -32,7 +34,7 @@ The spike implements pattern 1 at the cryptographic API level only. It does not 
 
 The parameters are a laboratory policy, not a production key-custody recommendation. A lost vault plus lost key has no magic recovery path in this spike. Social, threshold, institutional or KYC-backed recovery would be an authoritative governance feature and must be designed separately.
 
-The existing `rotateKey` transition changes the currently authorised root key while preserving the principal identifier. After rotation, an old restored vault is correctly stale: it cannot sign a new command or log into a host using the old root. That is intentional protection against duplicate authority after recovery/rotation.
+The existing `rotateKey` transition changes the currently authorised root key while preserving the principal identifier. After rotation, an old restored vault is correctly stale: it refuses commands from a current snapshot whose root differs, and a conforming gateway rejects its stale login signatures. A dishonest stale snapshot cannot reauthorise that root at the actual current journal. That is intentional protection against duplicate authority after recovery/rotation.
 
 ## Threats tested
 

@@ -1,4 +1,4 @@
-/** P0.4 black-box signer checks against two real HTTP gateway processes. */
+/** P0.4 black-box signer checks against two HTTP hosts in a real child process (one shared writer). */
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fork } from 'node:child_process';
@@ -77,4 +77,28 @@ test('offline sealed-key recovery can move to another host; old vault becomes st
   const replacement = new PortableSigner({ principal: 'alice', world: 'oatrix-lab-v2', privateKey: nextKey, audiences: l.urls });
   const newToken = await login(l.urls[0], replacement), fresh = await snapshot(l.urls[0]);
   assert.equal((await request(l.urls[0], '/api/commands', replacement.signIntent(fresh, { action: 'transfer', args: { to: 'bob', amount: 1 }, expectedHead: fresh.head, expiresIn: 20 }), newToken)).status, 200);
+});
+
+test('pinned approval rejects unrelated cross-host state change and requires fresh approval', { timeout: 20_000 }, async t => {
+  const l = await lab(t), [a, b] = l.urls;
+  const alice = new PortableSigner({ principal: 'alice', world: 'oatrix-lab-v2', privateKey: fixtureKey('alice'), audiences: l.urls });
+  const bob = new PortableSigner({ principal: 'bob', world: 'oatrix-lab-v2', privateKey: fixtureKey('bob'), audiences: l.urls });
+  const before = await snapshot(a), approval = alice.signIntent(before, { action: 'transfer', args: { to: 'bob', amount: 9 }, expectedHead: before.head, expiresIn: 20 });
+  const other = bob.signIntent(before, { action: 'transfer', args: { to: 'founder', amount: 1 }, expectedHead: before.head, expiresIn: 20 });
+  assert.equal((await request(b, '/api/commands', other)).status, 200);
+  const current = await snapshot(a), stale = await request(a, '/api/commands', approval);
+  assert.equal(stale.status, 400); assert.equal(stale.data.error, 'HEAD_CHANGED'); assert.deepEqual(await snapshot(b), current);
+  const token = await login(a, alice); const retry = await request(a, '/api/commands', approval, token);
+  assert.equal(retry.status, 400); assert.equal(retry.data.error, 'HEAD_CHANGED');
+  const fresh = alice.signIntent(current, { action: 'transfer', args: { to: 'bob', amount: 9 }, expectedHead: current.head, expiresIn: 20 });
+  assert.equal((await request(b, '/api/commands', fresh)).status, 200); assert.equal((await snapshot(a)).state.balances.bob, 10008);
+  assert.equal((await request(a, '/api/commands', fresh)).data.error, 'HEAD_CHANGED');
+});
+test('two hosts cannot both accept independently signed approvals for one exact predecessor', { timeout: 20_000 }, async t => {
+  const l = await lab(t), before = await snapshot(l.urls[0]);
+  const approvals = ['alice', 'bob'].map(principal => new PortableSigner({ principal, world: before.state.world, privateKey: fixtureKey(principal), audiences: l.urls })
+    .signIntent(before, { action: 'transfer', args: { to: 'founder', amount: 1 }, expectedHead: before.head, expiresIn: 20 }));
+  const r = await Promise.all(l.urls.map((url, i) => request(url, '/api/commands', approvals[i])));
+  assert.deepEqual(r.map(x => x.status).sort(), [200, 400]); assert.equal(r.find(x => x.status === 400).data.error, 'HEAD_CHANGED');
+  const after = await snapshot(l.urls[0]); assert.deepEqual(after, await snapshot(l.urls[1])); assert.equal(after.state.balances.founder, before.state.balances.founder + 1);
 });

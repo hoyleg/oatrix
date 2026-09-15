@@ -90,12 +90,22 @@ function finishTick(state) {
   }
 }
 /** Throw before committing if a signed instruction is invalid. Caller state is never mutated. */
-export function transition(previous, envelope) {
+export function transition(previous, envelope, currentHead = null) {
   demand(Buffer.byteLength(canonical(envelope)) <= 32_768, 'COMMAND_TOO_LARGE');
   fields(envelope, ['body', 'signature']);
   const b = envelope.body;
-  fields(b, ['v', 'world', 'principal', 'controller', 'epoch', 'nonce', 'expires', 'action', 'args']);
-  demand(b.v === 1 && b.world === previous.world, 'WRONG_WORLD');
+  const pinned = b?.v === 2;
+  fields(b, ['v', 'world', 'principal', 'controller', 'epoch', 'nonce', 'expires', 'action', 'args',
+    ...(pinned ? ['expectedHead', 'expectedStateHash'] : [])]);
+  demand((b.v === 1 || pinned) && b.world === previous.world, 'WRONG_WORLD');
+  if (pinned) {
+    // The caller must supply the actual predecessor from its ordered journal.
+    // No default, advertised snapshot or envelope-supplied head may stand in for it.
+    demand(currentHead !== null, 'HEAD_CONTEXT_REQUIRED'); digest(currentHead);
+    digest(b.expectedHead); digest(b.expectedStateHash);
+    demand(b.expectedHead === currentHead, 'HEAD_CHANGED');
+    demand(b.expectedStateHash === hash(previous), 'STATE_CHANGED');
+  }
   identifier(b.principal); identifier(b.controller); integer(b.epoch, 1); integer(b.nonce, 1);
   integer(b.expires); demand(b.expires >= previous.tick && b.expires <= previous.tick + 1_000, 'EXPIRED_COMMAND');
   const actionFields = actionFieldsFor(previous.v);
@@ -110,7 +120,7 @@ export function transition(previous, envelope) {
   }
   const nonceKey = b.principal + ':' + b.controller + ':' + b.epoch;
   demand(b.nonce === (previous.nonces[nonceKey] ?? 0) + 1, 'BAD_NONCE');
-  demand(verifyPayload('OATRIX-COMMAND-1', b, envelope.signature, oldAuthority.publicKey), 'BAD_SIGNATURE');
+  demand(verifyPayload(pinned ? 'OATRIX-COMMAND-2' : 'OATRIX-COMMAND-1', b, envelope.signature, oldAuthority.publicKey), 'BAD_SIGNATURE');
   demand(!previous.paused || DURING_PAUSE.has(b.action), 'WORLD_PAUSED');
   const s = clone(previous), p = b.principal, a = b.args;
   const identity = s.identities[p], authority = delegated ? identity.delegates[b.controller] : null;

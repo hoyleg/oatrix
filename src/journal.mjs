@@ -13,7 +13,7 @@ export class Journal {
   get head() { return this.#head; }
   get genesisHash() { return hash(this.#genesis); }
   submit(envelope) {
-    const { state, event } = transition(this.#state, envelope);
+    const { state, event } = transition(this.#state, envelope, this.#head);
     const record = { sequence: this.#events.length + 1, previous: this.#head, envelope: clone(envelope), event, stateHash: hash(state) };
     const entry = { ...record, hash: hash(record) };
     this.#state = state; this.#events.push(entry); this.#head = entry.hash;

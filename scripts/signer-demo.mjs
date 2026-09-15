@@ -16,5 +16,5 @@ const accepted = journal.submit(envelope);
 console.log(JSON.stringify({
   signer: signer.descriptor(),
   intent: { action: envelope.body.action, args: envelope.body.args, expectedHead: before.head },
-  accepted: { event: accepted.event.hash, head: journal.head, bob: journal.state.balances.bob }
+  accepted: { event: accepted.hash, head: journal.head, bob: journal.state.balances.bob }
 }, null, 2));

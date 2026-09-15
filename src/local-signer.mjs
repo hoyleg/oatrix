@@ -7,9 +7,9 @@
  * that a gateway's snapshot is the canonical federation state (P1 concern).
  */
 import {
-  createCipheriv, createDecipheriv, createPrivateKey, randomBytes, scryptSync
+  createCipheriv, createDecipheriv, createPrivateKey, KeyObject, randomBytes, scryptSync
 } from 'node:crypto';
-import { canonical, clone, demand, digest, fields, identifier, integer, text } from './canonical.mjs';
+import { canonical, clone, demand, digest, fields, hash, identifier, integer, text } from './canonical.mjs';
 import { actionFieldsFor } from './world.mjs';
 import { publicKey, signPayload } from './identity.mjs';
 
@@ -34,7 +34,7 @@ function headerFor(vault) {
 }
 function b64(bytes) { return Buffer.from(bytes).toString('base64url'); }
 function bytes(value, min, max, code = 'BAD_VAULT') {
-  demand(typeof value === 'string' && /^[A-Za-z0-9_-]+$/.test(value), code);
+  demand(typeof value === 'string' && value.length <= Math.ceil(max * 4 / 3) && /^[A-Za-z0-9_-]+$/.test(value), code);
   const out = Buffer.from(value, 'base64url');
   demand(out.length >= min && out.length <= max && out.toString('base64url') === value, code);
   return out;
@@ -50,7 +50,8 @@ function validateVault(vault) {
 export class PortableSigner {
   #key; #now; #audiences;
   constructor({ principal, world, privateKey, audiences, now = () => Date.now() }) {
-    identifier(principal); text(world, 200); demand(privateKey && typeof privateKey === 'object', 'BAD_PRIVATE_KEY');
+    identifier(principal); text(world, 200); demand(privateKey instanceof KeyObject && privateKey.type === 'private' && privateKey.asymmetricKeyType === 'ed25519', 'BAD_PRIVATE_KEY');
+    demand(typeof now === 'function', 'BAD_CLOCK');
     demand(Array.isArray(audiences) && audiences.length >= 1 && audiences.length <= 32, 'BAD_AUDIENCES');
     this.principal = principal; this.world = world; this.publicKey = publicKey(privateKey);
     this.#key = privateKey; this.#now = now; this.#audiences = new Set(audiences.map(origin));
@@ -62,7 +63,7 @@ export class PortableSigner {
     demand(challenge.v === 1 && challenge.world === this.world && challenge.principal === this.principal, 'LOGIN_IDENTITY');
     demand(this.#audiences.has(origin(challenge.audience)), 'AUDIENCE_NOT_ALLOWED'); integer(challenge.epoch, 1);
     text(challenge.nonce, 100); integer(challenge.expiresAt, 1, Number.MAX_SAFE_INTEGER);
-    const now = this.#now(); demand(challenge.expiresAt > now && challenge.expiresAt <= now + 120_000, 'LOGIN_EXPIRES');
+    const now = this.#now(); integer(now, 0, Number.MAX_SAFE_INTEGER); demand(challenge.expiresAt > now && challenge.expiresAt <= now + 120_000, 'LOGIN_EXPIRES');
     return signPayload('OATRIX-LOGIN-1', challenge, this.#key);
   }
   /** Sign only a caller-declared intent against the exact snapshot head it reviewed. */
@@ -78,11 +79,12 @@ export class PortableSigner {
     fields(intent.args, vocabulary[intent.action]);
     const nonceKey = `${this.principal}:root:${identity.epoch}`;
     const body = {
-      v: 1, world: this.world, principal: this.principal, controller: 'root', epoch: identity.epoch,
+      v: 2, world: this.world, principal: this.principal, controller: 'root', epoch: identity.epoch,
       nonce: (state.nonces?.[nonceKey] ?? 0) + 1, expires: state.tick + intent.expiresIn,
-      action: intent.action, args: clone(intent.args)
+      action: intent.action, args: clone(intent.args),
+      expectedHead: intent.expectedHead, expectedStateHash: hash(state)
     };
-    return { body, signature: signPayload('OATRIX-COMMAND-1', body, this.#key) };
+    return { body, signature: signPayload('OATRIX-COMMAND-2', body, this.#key) };
   }
   seal(passphraseValue) {
     passphrase(passphraseValue);
@@ -90,26 +92,31 @@ export class PortableSigner {
     const vault = { v: VAULT_VERSION, principal: this.principal, world: this.world, publicKey: this.publicKey,
       kdf: { ...KDF }, cipher: CIPHER, salt: b64(salt), iv: b64(iv), tag: '', ciphertext: '' };
     const key = scryptSync(passphraseValue, salt, KDF.keyLength, { N: KDF.N, r: KDF.r, p: KDF.p, maxmem: 64 * 1024 * 1024 });
-    const cipher = createCipheriv(CIPHER, key, iv); cipher.setAAD(Buffer.from(canonical(headerFor(vault))));
-    const plaintext = this.#key.export({ type: 'pkcs8', format: 'der' });
-    const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-    vault.tag = b64(cipher.getAuthTag()); vault.ciphertext = b64(ciphertext);
-    return vault;
+    let plaintext;
+    try {
+      const cipher = createCipheriv(CIPHER, key, iv, { authTagLength: 16 }); cipher.setAAD(Buffer.from(canonical(headerFor(vault))));
+      plaintext = this.#key.export({ type: 'pkcs8', format: 'der' });
+      const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+      vault.tag = b64(cipher.getAuthTag()); vault.ciphertext = b64(ciphertext);
+      return vault;
+    } finally { key.fill(0); plaintext?.fill(0); } // Best effort, not a JS secure-memory guarantee.
   }
 }
 
 export function restorePortableSigner(vault, passphraseValue, { audiences, now = () => Date.now() }) {
   validateVault(vault); passphrase(passphraseValue);
   const salt = bytes(vault.salt, 16, 16), iv = bytes(vault.iv, 12, 12), tag = bytes(vault.tag, 16, 16), ciphertext = bytes(vault.ciphertext, 1, 4096);
+  let keyBytes, partial, der;
   try {
-    const keyBytes = scryptSync(passphraseValue, salt, vault.kdf.keyLength, { N: vault.kdf.N, r: vault.kdf.r, p: vault.kdf.p, maxmem: 64 * 1024 * 1024 });
-    const decipher = createDecipheriv(vault.cipher, keyBytes, iv); decipher.setAAD(Buffer.from(canonical(headerFor(vault)))); decipher.setAuthTag(tag);
-    const der = Buffer.concat([decipher.update(ciphertext), decipher.final()]);
+    keyBytes = scryptSync(passphraseValue, salt, vault.kdf.keyLength, { N: vault.kdf.N, r: vault.kdf.r, p: vault.kdf.p, maxmem: 64 * 1024 * 1024 });
+    const decipher = createDecipheriv(vault.cipher, keyBytes, iv, { authTagLength: 16 }); decipher.setAAD(Buffer.from(canonical(headerFor(vault)))); decipher.setAuthTag(tag);
+    partial = decipher.update(ciphertext);
+    der = Buffer.concat([partial, decipher.final()]);
     const privateKey = createPrivateKey({ key: der, format: 'der', type: 'pkcs8' });
     demand(publicKey(privateKey) === vault.publicKey, 'VAULT_KEY_MISMATCH');
     return new PortableSigner({ principal: vault.principal, world: vault.world, privateKey, audiences, now });
   } catch (error) {
     if (error?.name === 'RuleError') throw error;
     demand(false, 'VAULT_DECRYPT');
-  }
+  } finally { keyBytes?.fill(0); partial?.fill(0); der?.fill(0); }
 }
