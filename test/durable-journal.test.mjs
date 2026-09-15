@@ -154,19 +154,23 @@ test('truncated physical database is not silently replaced with fresh genesis', 
 });
 
 test('SQLite write contention is explicit and rejected work can be resubmitted after lock release', t => {
-  const l = rig(t), other = new DatabaseSync(l.file); t.after(() => other.close());
-  other.exec('BEGIN IMMEDIATE');
-  rejectUnchanged(l.j, 'LEDGER_BUSY', () => l.act('transfer', { to: 'bob', amount: 1 }));
-  other.exec('ROLLBACK'); l.act('transfer', { to: 'bob', amount: 1 });
+  const l = rig(t), other = new DatabaseSync(l.file);
+  try {
+    other.exec('BEGIN IMMEDIATE');
+    rejectUnchanged(l.j, 'LEDGER_BUSY', () => l.act('transfer', { to: 'bob', amount: 1 }));
+    other.exec('ROLLBACK'); l.act('transfer', { to: 'bob', amount: 1 });
+  } finally { other.close(); } // Close before rig's directory-cleanup hook (required on Windows).
 });
 
 test('a failed COMMIT poisons the handle; reopening and lookup resolve the outcome', t => {
-  const l = rig(t), reader = new DatabaseSync(l.file); t.after(() => reader.close());
-  const e = command(l.j.state, 'alice', 'transfer', { to: 'bob', amount: 1 }, fixtureKey('alice'));
-  reader.exec('BEGIN'); reader.prepare('SELECT head FROM world').get();
-  assert.throws(() => l.j.submit(e), e => e.code === 'LEDGER_IO_UNCERTAIN'); assert.throws(() => l.j.state, /LEDGER_CLOSED/);
-  reader.exec('ROLLBACK'); const after = l.reopen(); assert.equal(after.lookup(hash(e)), null);
-  after.submit(e); assert.equal(after.state.balances.bob, l.genesis.balances.bob + 1);
+  const l = rig(t), reader = new DatabaseSync(l.file);
+  try {
+    const e = command(l.j.state, 'alice', 'transfer', { to: 'bob', amount: 1 }, fixtureKey('alice'));
+    reader.exec('BEGIN'); reader.prepare('SELECT head FROM world').get();
+    assert.throws(() => l.j.submit(e), e => e.code === 'LEDGER_IO_UNCERTAIN'); assert.throws(() => l.j.state, /LEDGER_CLOSED/);
+    reader.exec('ROLLBACK'); const after = l.reopen(); assert.equal(after.lookup(hash(e)), null);
+    after.submit(e); assert.equal(after.state.balances.bob, l.genesis.balances.bob + 1);
+  } finally { reader.close(); } // Test-owned connection must not outlive directory cleanup.
 });
 
 test('portable logical export restores to a new directory only, with an exact independent checkpoint', t => {

@@ -64,3 +64,14 @@ attestation, Byzantine consensus, production signer, autonomous agent, paid
 provider or database encryption was implemented. The SQLite interface is
 experimental in Node22.16 and remains a bounded laboratory choice. History is
 bounded and replay-based; this is not a throughput or scaling benchmark.
+
+## First native CI correction
+
+Run34995438923 at5c93f03 passed both Linux jobs but failed two Windows unit tests
+on both Node22.16 and24. Their assertions reached cleanup; the extra test-owned
+SQLite reader/writer connections were closed in a later `t.after` hook than
+rig's directory removal, producing EPERM. The two tests now close those handles
+in try/finally before directory cleanup. No assertion, persistence code, timeout
+or platform test is relaxed. Final native results are recorded on the PR after
+rerun. This is a fixture lifetime correction, not evidence of Windows durability
+until the complete native suite actually passes.
