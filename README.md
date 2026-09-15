@@ -1,5 +1,12 @@
 # Oatrix
 
+## Replication review candidate (P0.7)
+
+This branch adds **separate-file, separate-process checkpoint-pinned catch-up** on top of the reviewed P0.6 durable journal. It is not yet integrated into `main` and does not introduce consensus or automatic writer failover. Run `npm run demo:replication` for the three-process demonstration, or `npm run verify` for all checks. Requires Node **22.16.0+**, no package installation. Read [the protocol, exact operating commands and trust boundary](docs/replication-v0.1.md) and [verification](docs/verification-replication-v0.1.md).
+
+The existing browser scenes remain fixed demonstrations. Replica APIs expose actual persisted state. No user setup is needed merely to commission a fresh code review; the reviewer should follow the brief in the candidate PR.
+
+
 **Creation has inputs. Ownership outlives a host.**
 
 Oatrix is an experiment in an industrial shared reality: participants contribute work, resources, tools or infrastructure; creation has a cost; useful outputs can earn rewards. Its eventual purpose is deliberately open. A software-building commons, an industrial simulation and a creative world are possibilities, not predetermined demand.

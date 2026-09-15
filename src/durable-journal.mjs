@@ -208,5 +208,52 @@ export class DurableJournal {
       throw error;
     }
   }
+  /** Install one complete checkpoint-pinned suffix atomically. No ledger state is
+   * copied from the remote host; replay determines every effect. The target is
+   * supplied by the caller's trust policy, not discovered inside this method.
+   */
+  importRecords(records, expectedBase, trustedTarget) {
+    this.#check(); checkpoint(expectedBase, this.genesisHash); checkpoint(trustedTarget, this.genesisHash);
+    demand(expectedBase.sequence === this.#row.sequence && expectedBase.head === this.#journal.head, 'REPLICA_BASE_CHANGED');
+    demand(trustedTarget.sequence >= expectedBase.sequence, 'REPLICA_ROLLBACK');
+    demand(Array.isArray(records) && records.length === trustedTarget.sequence - expectedBase.sequence, 'REPLICA_RECORD_COUNT');
+    demand(trustedTarget.sequence <= this.#row.max_events, 'LEDGER_EVENT_LIMIT');
+    // Copy bounded canonical records before acquiring a database lock. No network awaits in a transaction.
+    let bytes = this.#row.logical_bytes;
+    const texts = records.map(r => {
+      const text = canonical(r), size = Buffer.byteLength(text);
+      demand(size <= LEDGER_LIMITS.recordBytes, 'LEDGER_RECORD_LIMIT');
+      bytes += size; demand(bytes <= this.#row.max_bytes, 'LEDGER_BYTE_LIMIT'); return text;
+    });
+    if (texts.length === 0) { demand(trustedTarget.head === this.#journal.head, 'CHECKPOINT_MISMATCH'); return this.checkpoint(); }
+    try { this.#db.exec('BEGIN IMMEDIATE'); }
+    catch (error) { if ((error.errcode & 255) === 5 || (error.errcode & 255) === 6) throw new RuleError('LEDGER_BUSY'); throw error; }
+    let committing = false;
+    try {
+      this.#check();
+      const next = Journal.restore(this.#journal.export(), this.genesisHash, this.#journal.head), accepted = [];
+      for (const text of texts) {
+        const supplied = parseBounded(text, LEDGER_LIMITS.recordBytes), entry = next.submit(supplied.envelope);
+        demand(canonical(entry) === text, 'JOURNAL_MISMATCH'); accepted.push(entry);
+      }
+      demand(next.head === trustedTarget.head && next.events.length === trustedTarget.sequence, 'CHECKPOINT_MISMATCH');
+      const insert = this.#db.prepare('INSERT INTO events VALUES (?, ?, ?)');
+      for (let i = 0; i < accepted.length; i++) insert.run(accepted[i].sequence, hash(accepted[i].envelope), texts[i]);
+      this.#db.prepare('UPDATE world SET head=?, sequence=?, logical_bytes=? WHERE id=1').run(next.head, trustedTarget.sequence, bytes);
+      phase.publish({ phase: 'replica-before-commit', sequence: trustedTarget.sequence, head: next.head });
+      committing = true; this.#db.exec('COMMIT');
+      phase.publish({ phase: 'replica-after-commit', sequence: trustedTarget.sequence, head: next.head });
+      this.#journal = next; this.#row = { ...this.#row, head: next.head, sequence: trustedTarget.sequence, logical_bytes: bytes };
+      for (const entry of accepted) this.#commands.set(hash(entry.envelope), clone(entry));
+      return this.checkpoint();
+    } catch (error) {
+      rollback(this.#db);
+      if (committing || !(error instanceof RuleError)) {
+        this.#poisoned = true; try { this.#db.close(); } catch { /* unusable regardless */ }
+        throw new RuleError('LEDGER_IO_UNCERTAIN', 'Stop and reopen the replica; verify its checkpoint before retrying.');
+      }
+      throw error;
+    }
+  }
   close() { if (!this.#closed) { if (!this.#poisoned) this.#db.close(); this.#closed = true; } }
 }

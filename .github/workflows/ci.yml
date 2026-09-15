@@ -36,6 +36,7 @@ jobs:
       - run: npm run demo:work
       - run: npm run demo:signer
       - run: npm run demo:durable
+      - run: npm run demo:replication
       - run: npm run sweep
       - run: npm run sweep:verify
       - run: npm run build:web
