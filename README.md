@@ -31,9 +31,24 @@ node scripts/client.mjs alice transfer '{"to":"bob","amount":10}' http://127.0.0
 
 On shells that alter JSON quoting, run the tests and console first; the command above uses standard POSIX/PowerShell single-quoted JSON.
 
-## Separate authority candidate on this branch
+## Reviewed work mandates (opt-in)
 
-This review branch also contains **opt-in rules v3 work mandates**, with material/extraction and job limits as well as U budgets and exact recipe/machine/provider scope. The ordinary server remains v2; no migration is performed. Run `npm run demo:work` for the isolated demonstration. See [the scope and fresh-review brief](docs/work-mandates-v0.1.md) and [actual verification](docs/verification-work-mandates.md). This critical change is not approved merely because its tests pass.
+PR #7 is merged and includes **opt-in rules v3 work mandates**, with material/extraction and job limits as well as U budgets and exact recipe/machine/provider scope. The ordinary server remains v2; no migration is performed. Run `npm run demo:work` for the isolated demonstration. See [the scope and fresh-review brief](docs/work-mandates-v0.1.md) and [actual verification](docs/verification-work-mandates.md). The fresh review is recorded on PR #7; this remains experimental rather than production security assurance.
+
+## Encrypted content / cold-storage candidate
+
+This feature is not on `main` until its PR is merged. For a first local checkout of the candidate:
+
+```sh
+git fetch origin
+git switch --track origin/feat/encrypted-asset-packs
+npm run verify
+npm run demo:storage
+```
+
+When that local branch already exists, use `git switch feat/encrypted-asset-packs` and `git pull --ff-only` instead of creating it again. Do not discard conflicting local changes.
+
+This branch adds the isolated P0.5 storage experiment. Run `npm run demo:storage` to build a plaque, store encrypted copies on disk, lose both online copies and recover from cold storage without reclaiming an expired occupied location. The printed report gives the exact new run directory. No extra installation, keys or server setup is needed. This is public fixture data, not a production backup service. [Format, APIs, explicit limits and review brief](docs/storage-packs-v0.1.md); [actual verification](docs/verification-storage-v0.1.md).
 
 ## Compare the rules under adverse conditions
 
@@ -46,7 +61,7 @@ npm run sweep:verify  # recompute and reject an inconsistent report
 
 For custom bounded configurations and optional replay journals, see [P0.3 experiments](docs/experiments-v0.3.md). No LLM, cloud account or additional installation is used. The page compares simulated consequences; scripted purchases are not evidence of demand.
 
-Existing checkout, including one left on the old review branch: stop the server, then run:
+To return an existing checkout to the merged lab (not the unmerged storage candidate), stop the server, then run:
 
 ```sh
 git fetch origin
