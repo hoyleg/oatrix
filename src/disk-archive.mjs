@@ -7,6 +7,7 @@ import { constants, closeSync, existsSync, fstatSync, fsyncSync, lstatSync, mkdi
 import { join, resolve } from 'node:path';
 import { randomBytes } from 'node:crypto';
 import { demand, digest, integer } from './canonical.mjs';
+import { pathMatchesHandle, sameOpenFile } from './file-identity.mjs';
 import { PACK_LIMITS, validatePackFrame } from './asset-packs.mjs';
 export class DiskArchive {
   #dir; #quota; #files;
@@ -45,18 +46,26 @@ export class DiskArchive {
   }
   usage() { return this.#lock(() => this.#scan()); }
   get(id) {
-    const file = this.#file(id); let fd;
+    const file = this.#file(id); let fd, confirm;
     try {
-      const info = lstatSync(file); demand(info.isFile() && !info.isSymbolicLink() && info.nlink === 1, 'ARCHIVE_FILE');
-      integer(info.size, 37, PACK_LIMITS.packBytes);
+      const info = lstatSync(file, { bigint: true });
+      demand(info.isFile() && !info.isSymbolicLink() && info.nlink === 1n, 'ARCHIVE_FILE');
+      demand(info.size >= 37n && info.size <= BigInt(PACK_LIMITS.packBytes), 'ARCHIVE_FILE');
       fd = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
-      const opened = fstatSync(fd); demand(opened.isFile() && opened.ino === info.ino && opened.dev === info.dev && opened.size === info.size, 'ARCHIVE_CHANGED');
-      const bytes = Buffer.alloc(info.size); let offset = 0;
+      const opened = fstatSync(fd, { bigint: true });
+      demand(pathMatchesHandle(info, opened), 'ARCHIVE_CHANGED');
+      const bytes = Buffer.alloc(Number(info.size)); let offset = 0;
       while (offset < bytes.length) { const n = readSync(fd, bytes, offset, bytes.length - offset, null); demand(n > 0, 'ARCHIVE_CHANGED'); offset += n; }
       demand(readSync(fd, Buffer.alloc(1), 0, 1, null) === 0, 'ARCHIVE_CHANGED');
+      // Check a second open handle, not only an incomplete Windows path device ID.
+      const after = lstatSync(file, { bigint: true });
+      demand(pathMatchesHandle(after, opened), 'ARCHIVE_CHANGED');
+      confirm = openSync(file, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
+      demand(sameOpenFile(opened, fstatSync(confirm, { bigint: true })) &&
+        sameOpenFile(opened, fstatSync(fd, { bigint: true })), 'ARCHIVE_CHANGED');
       demand(validatePackFrame(bytes) === id, 'ARCHIVE_CORRUPT'); return bytes;
     } catch (error) { if (error.code === 'ENOENT') demand(false, 'ARCHIVE_MISSING'); throw error; }
-    finally { if (fd !== undefined) closeSync(fd); }
+    finally { if (confirm !== undefined) closeSync(confirm); if (fd !== undefined) closeSync(fd); }
   }
   put(pack) {
     const id = validatePackFrame(pack), file = this.#file(id);

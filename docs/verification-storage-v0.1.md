@@ -23,3 +23,15 @@ This is content persistence, not a durable authoritative server, consensus, prov
 The first published storage candidate `f06960b73a9d9ad23971ef344c72f7bafb4fc059` passed CI on all three platforms (Windows also ran symlink checks with zero skips). A subsequent Copilot review correctly noted that usage/quota scans validated file sizes and names but did not recheck ciphertext hashes. Two reproductions (corrupt same-sized content and a valid frame under a wrong digest) failed on that candidate.
 
 The correction bounds aggregate bytes from metadata first, then validates every existing pack through the bounded hash-checking read path before any quota-dependent operation proceeds. Corruption leaves files untouched and releases the cooperative lock. Two additional regression tests run with the full suite; counts are now **188 unit/integration + 12 process E2E tests**. Combined with corrected signer dcdb628, **206 unit/integration + 18 process E2E tests** pass. Final corrected commit/tree and CI are recorded on the PR. This is still awaiting the requested fresh review, not automatically approved by an automated comment and author fix.
+
+## Windows review correction (supersedes general Windows-readiness inference)
+
+The separate reviewer reported six `ARCHIVE_CHANGED` failures on Windows at
+`f39938e`; prior Windows CI passing does not contradict that failure on another
+Node/Windows combination. See `docs/windows-archive-review.md`. This candidate
+retains the exact signed pack/restore semantics and adds BigInt file identities,
+only a directional missing-path-device exception on Windows, and an additional
+strict handle-to-handle check. No original corruption/link/quota test is removed.
+The CI matrix now includes Windows Node 22.16.0 as well as Node 24 and prints a
+non-secret filesystem probe. Native CI results and exact commit are reported on
+the PR after publication. Local Linux tests are not a claim of Windows validation.
