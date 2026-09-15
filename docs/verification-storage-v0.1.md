@@ -17,3 +17,9 @@ The exact final source tree and remote CI results are recorded on the PR after p
 ## Boundaries still open
 
 This is content persistence, not a durable authoritative server, consensus, provider-payment system or deployment endpoint. No supplied private data, real keys, paid services, KYC or licensing decision was involved. The demo uses public fixture content and disposable demo encryption keys. No production assurance, SLA, liability determination or data-loss compensation is implied.
+
+## Automated review correction
+
+The first published storage candidate `f06960b73a9d9ad23971ef344c72f7bafb4fc059` passed CI on all three platforms (Windows also ran symlink checks with zero skips). A subsequent Copilot review correctly noted that usage/quota scans validated file sizes and names but did not recheck ciphertext hashes. Two reproductions (corrupt same-sized content and a valid frame under a wrong digest) failed on that candidate.
+
+The correction bounds aggregate bytes from metadata first, then validates every existing pack through the bounded hash-checking read path before any quota-dependent operation proceeds. Corruption leaves files untouched and releases the cooperative lock. Two additional regression tests run with the full suite; counts are now **188 unit/integration + 12 process E2E tests**. Combined with corrected signer dcdb628, **206 unit/integration + 18 process E2E tests** pass. Final corrected commit/tree and CI are recorded on the PR. This is still awaiting the requested fresh review, not automatically approved by an automated comment and author fix.

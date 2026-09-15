@@ -38,6 +38,9 @@ export class DiskArchive {
       packs.push({ id: name.slice(0, -4), bytes: info.size });
     }
     demand(packs.length <= this.#files && bytes <= this.#quota, 'ARCHIVE_QUOTA');
+    // Bound total work from metadata first, then verify every ciphertext address.
+    // A well-sized corrupt/renamed pack must not be counted as a healthy archive.
+    for (const pack of packs) demand(this.get(pack.id).length === pack.bytes, 'ARCHIVE_CHANGED');
     return { bytes, packs: packs.sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0), quotaBytes: this.#quota, maxFiles: this.#files };
   }
   usage() { return this.#lock(() => this.#scan()); }

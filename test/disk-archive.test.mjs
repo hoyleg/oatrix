@@ -62,3 +62,22 @@ test('symlink files and symlink archive roots are refused when supported by the 
   unlinkSync(join(l.dir, l.p.id + '.oap')); const alias = join(l.root, 'alias'); symlinkSync(l.dir, alias, 'dir');
   assert.throws(() => new DiskArchive(alias), /ARCHIVE_DIRECTORY/);
 });
+
+test('review: corrupt existing ciphertext blocks usage and unrelated writes before quota decisions', t => {
+  const l = rig(t); l.archive.put(l.p.pack);
+  const damaged = Buffer.from(l.p.pack); damaged[damaged.length - 1] ^= 1;
+  const file = join(l.dir, l.p.id + '.oap'); writeFileSync(file, damaged);
+  const other = Buffer.from(l.p.pack); other[40] ^= 1;
+  for (const operation of [() => l.archive.usage(), () => l.archive.put(other), () => l.archive.remove('f'.repeat(64))]) {
+    assert.throws(operation, /ARCHIVE_CORRUPT/);
+    assert.deepEqual(readFileSync(file), damaged);
+    assert.deepEqual(readdirSync(l.dir), [l.p.id + '.oap']);
+  }
+});
+test('review: a well-framed pack stored under the wrong digest is not healthy archive capacity', t => {
+  const l = rig(t), wrongId = l.p.id === 'a'.repeat(64) ? 'b'.repeat(64) : 'a'.repeat(64);
+  writeFileSync(join(l.dir, wrongId + '.oap'), l.p.pack);
+  assert.throws(() => l.archive.usage(), /ARCHIVE_CORRUPT/);
+  assert.throws(() => l.archive.put(l.p.pack), /ARCHIVE_CORRUPT/);
+  assert.deepEqual(readdirSync(l.dir), [wrongId + '.oap']);
+});
