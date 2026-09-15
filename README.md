@@ -6,9 +6,24 @@ Oatrix is an experiment in an industrial shared reality: participants contribute
 
 This repository contains a **working, bounded deterministic lab**, not a deployed blockchain or a production economy. It tests principles before spending money on inference, hosting or complex consensus infrastructure.
 
+## Opt-in durable ledger candidate
+
+The signer is integrated on main. This branch additionally tests **persistent
+local ledger state**, independently of unmerged encrypted asset packs. Use Node
+**22.16.0+**; no npm install or separate database is required. `npm run demo:durable`
+performs real child-process crash/recovery checks in a new isolated directory.
+To keep state across ordinary restarts, run `npm run ledger:init` **once**, then
+`npm run start:durable`. Restart with only `start:durable`. A missing/corrupt
+ledger is never reset automatically. The old `npm start` still resets on restart.
+
+The browser screens remain fixed-scenario viewers. `/api/state` and
+`/api/checkpoint` show the live persistent state. This is local SQLite, **not
+consensus or production persistence assurance**. See
+[the operating and recovery contract](docs/durable-journal-v0.1.md).
+
 ## Run it
 
-Install a supported Node.js release, version 22 or later. No package installation, model credentials, database, Docker or paid service is needed.
+Install a supported Node.js release, version 22.16.0 or later. No package installation, model credentials, database, Docker or paid service is needed.
 
 ```sh
 git clone https://github.com/hoyleg/oatrix.git
@@ -31,9 +46,15 @@ node scripts/client.mjs alice transfer '{"to":"bob","amount":10}' http://127.0.0
 
 On shells that alter JSON quoting, run the tests and console first; the command above uses standard POSIX/PowerShell single-quoted JSON.
 
-## Separate authority candidate on this branch
+## Reviewed work mandates and signer
 
-This review branch also contains **opt-in rules v3 work mandates**, with material/extraction and job limits as well as U budgets and exact recipe/machine/provider scope. The ordinary server remains v2; no migration is performed. Run `npm run demo:work` for the isolated demonstration. See [the scope and fresh-review brief](docs/work-mandates-v0.1.md) and [actual verification](docs/verification-work-mandates.md). This critical change is not approved merely because its tests pass.
+Opt-in rules v3 work mandates were reviewed and merged in PR #7. The corrected
+portable signer and signed predecessor/state binding were reviewed and merged
+in PR #8. The ordinary server remains v2; no migration is performed. Run
+`npm run demo:work` or `npm run demo:signer` for their isolated demonstrations.
+Their protocol boundaries and historical review evidence remain in
+[work mandates](docs/work-mandates-v0.1.md) and
+[signer resolution](docs/review-8-resolution.md).
 
 ## Compare the rules under adverse conditions
 

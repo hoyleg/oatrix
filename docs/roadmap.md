@@ -20,17 +20,17 @@ Not claimed: independently secure source, real provider delivery, Byzantine cons
 **Acceptance:** copying a blueprint does not copy materials, active capacity or inventory; no production/dismantling loop mints U; generated recipes cannot expand authority; scarcity/demand assumptions are exposed.
 **Exclude:** arbitrary native code, new language invention as a prerequisite, open-ended model workers.
 
-## P0.3 — economic and retention sweeps (implemented candidate)
+## P0.3 — economic and retention sweeps (merged, PR #6)
 
 **Deliverable:** deterministic scenario runner with parameter files, predeclared demand assumptions and machine-readable metrics.
 **Acceptance:** compare fees, levy rules, capacity concentration, storage losses and reactivation policies; distinguish accounting validity from artificial demand. Repeated seeds reproduce results.
 **Exclude:** claims about market adoption from scripted purchases.
 
-## Scoped-work mandate follow-up — review before activation
+## Scoped-work mandate follow-up — reviewed and merged, PR #7
 
 The PR #5 review confirmed that legacy delegation caps U, not material use. Add a separate, explicitly opted-in work grant for cumulative materials/extraction, recipe/machine/provider scope and admission count. Preserve old replay semantics. Test rejected actions, cancellation/regrant churn, races and key rotation. This is a critical authority change and requires fresh review; do not silently substitute it into the reviewed baseline.
 
-## P0.4 — production identity design, then a narrow signer spike
+## P0.4 — narrow signer and signed-state approval (reviewed, PR #8 merged)
 
 **Deliverable:** host-neutral identity/authority specification and independent transaction signer with origin-bound login.
 **Acceptance:** a hostile gateway cannot substitute a principal, action or destination; key rotation/recovery preserve identity across hosts; passkey RP scope is explicitly handled; no private key is given to a provider; recovery does not create extra citizenship.
@@ -41,6 +41,18 @@ The PR #5 review confirmed that legacy delegation caps U, not material use. Add 
 **Deliverable:** versioned manifests, encryption/key custody choices, provider-independent import/export and measured cold restores.
 **Acceptance:** test byte loss, corruption, version change, sale while offline, key loss, depleted hosting budget and restore elsewhere; no old snapshot restores title or inventory; publish what remains unrecoverable.
 **Exclude:** claiming that encryption solves confidential economic validation.
+
+## P0.6 — durable local ledger before federation (review candidate)
+
+**Deliverable:** opt-in SQLite journal using Node's built-in module; exact replay,
+explicit initialization/export/recovery, receipt lookup and real process-crash
+checks. See `docs/durable-journal-v0.1.md`.
+**Acceptance:** acknowledge only after commit; pre-commit loss leaves no payment;
+post-commit lost reply is resolvable without a second payment; jobs, title, keys
+and nonces persist; wrong minimum checkpoints/corruption fail closed; no reset
+or automatic migration. Reconcile every replay to the existing reference model.
+**Exclude:** physical power-loss certification, network filesystem guarantees,
+Byzantine consensus, private ledger encryption and unbounded retention.
 
 ## P1 — Besu/QBFT enforcement experiment
 
