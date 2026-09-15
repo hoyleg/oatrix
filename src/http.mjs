@@ -2,6 +2,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { Gateway } from './gateway.mjs';
+import { exportPage } from './replication.mjs';
 import { actionFieldsFor } from './world.mjs';
 import { demand, fields, RuleError } from './canonical.mjs';
 const ASSETS = new Map([
@@ -16,7 +17,7 @@ async function readJSON(req) {
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw new RuleError('BAD_JSON'); }
 }
-export async function startHost(journal, { port = 0, report = null, sweepReport = null } = {}) {
+export async function startHost(journal, { port = 0, report = null, sweepReport = null, replication = false } = {}) {
   let gateway, audience;
   const windows = new Map();
   const server = createServer(async (req, res) => {
@@ -29,7 +30,16 @@ export async function startHost(journal, { port = 0, report = null, sweepReport 
       demand(req.headers.host === new URL(audience).host, 'HOST_MISMATCH');
       demand(!req.headers.origin || req.headers.origin === audience, 'ORIGIN_REJECTED');
       const url = new URL(req.url, audience);
+      journal.refreshForRead?.();
       if (req.method === 'GET') {
+        if (url.pathname === '/api/replication') {
+          if (!replication) return json(404, { error: 'REPLICATION_DISABLED' });
+          const q = url.searchParams, names = ['genesis', 'after', 'head', 'target', 'targetHead', 'limit'];
+          demand([...q.keys()].length === names.length && names.every(n => q.getAll(n).length === 1), 'REPLICA_QUERY');
+          const n = key => { const value = q.get(key); demand(/^(0|[1-9][0-9]{0,4})$/.test(value), 'REPLICA_QUERY'); return Number(value); };
+          return json(200, exportPage(journal, { from: { v: 1, genesisHash: q.get('genesis'), sequence: n('after'), head: q.get('head') },
+            target: { v: 1, genesisHash: q.get('genesis'), sequence: n('target'), head: q.get('targetHead') }, limit: n('limit') }));
+        }
         if (url.pathname === '/api/protocol') {
           const state = journal.state;
           return json(200, { world: state.world, stateVersion: state.v, envelopeVersion: 1, envelopeVersions: [1, 2], actions: actionFieldsFor(state.v) });
@@ -53,6 +63,7 @@ export async function startHost(journal, { port = 0, report = null, sweepReport 
         return json(404, { error: 'NOT_FOUND' });
       }
       demand(req.method === 'POST', 'METHOD_NOT_ALLOWED');
+      if (url.pathname === '/api/commands' && journal.mode === 'verified-read-only-replica-lab') return json(403, { error: 'REPLICA_READ_ONLY' });
       // Bounded local mutation rate. Not a production distributed anti-abuse mechanism.
       const minute = Math.floor(Date.now() / 60_000), ip = req.socket.remoteAddress;
       for (const [key, value] of windows) if (value.minute !== minute) windows.delete(key);
