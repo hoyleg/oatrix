@@ -87,3 +87,13 @@ The public-fixture CLI resolves an existing digest before a unique recipe name. 
 ## Experimental rules v3 (review candidate, not default activation)
 
 `actionFieldsFor(3)` adds `delegateWork`. Its exact fields and cumulative work-only permissions are specified in `docs/work-mandates-v0.1.md`. Rules v1/v2 keep their previous vocabularies, semantics and histories; no implicit migration is implemented. Default server/comparison fixtures remain v2. `workMandateGenesis()` explicitly selects v3. A legacy `delegate` grant stays U-only; integrations must not silently fall back to it when material-aware delegation was requested.
+
+## Pinned command envelope v2 (PR #8 review correction)
+
+Envelope version and world-rules version are separate. Envelope v1 remains the legacy, unpinned format. Envelope v2 adds required `expectedHead` and `expectedStateHash` digests to the same body and signs `OATRIX-COMMAND-2`, newline, canonical body. No unsigned optional precondition is accepted. `PortableSigner` only emits v2; existing `command()` fixtures remain v1 so archived histories are unchanged.
+
+For v2, `Journal.submit` passes its actual previous head to `transition(previous, envelope, currentHead)`. The reducer requires this context, compares both signed pins with the head and hash of the actual previous state, then performs ordinary signature, nonce, role and action validation before committing. A state change by **any** participant invalidates a prior exact-head approval. Reapproval is explicit; no automatic rebasing. A duplicate submission fails without a second effect; this is not a receipt-retrieval API.
+
+Gateway relay, session submission and journal replay use the same path. An old node cannot accept v2 as v1. A direct reducer call with a v2 envelope and no head context fails closed. The caller providing that context must still be the actual ordered writer; this is not a consensus protocol, light client or proof that an arbitrary provider is honest. Externally controlled code can lie, but a conforming journal will not accept an approval for different state.
+
+`/api/protocol` retains `envelopeVersion: 1` for legacy discovery and additionally publishes `envelopeVersions: [1, 2]`. Integrators requiring reviewed-head semantics must use v2 and must not fall back to v1.

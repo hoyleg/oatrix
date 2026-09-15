@@ -26,7 +26,7 @@ test('each host publishes discovery for its actual state version', async t => {
   for (const genesis of [labGenesis(), industrialGenesis()]) {
     const h = await startHost(new Journal(genesis)); t.after(() => h.close());
     const response = await fetch(h.url + '/api/protocol'); assert.equal(response.status, 200);
-    assert.deepEqual(await response.json(), { world: genesis.world, stateVersion: genesis.v, envelopeVersion: 1, actions: actionFieldsFor(genesis.v) });
+    assert.deepEqual(await response.json(), { world: genesis.world, stateVersion: genesis.v, envelopeVersion: 1, envelopeVersions: [1, 2], actions: actionFieldsFor(genesis.v) });
   }
 });
 test('recipe resolution supports a 64-hex name as well as exact digest and explicit forms', () => {
