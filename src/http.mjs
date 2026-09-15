@@ -35,9 +35,11 @@ export async function startHost(journal, { port = 0, report = null, sweepReport 
           return json(200, { world: state.world, stateVersion: state.v, envelopeVersion: 1, envelopeVersions: [1, 2], actions: actionFieldsFor(state.v) });
         }
         if (url.pathname === '/api/state') return json(200, gateway.snapshot());
-        if (url.pathname === '/api/health') return json(200, { mode: 'single-writer-loopback-lab', world: journal.state.world, head: journal.head });
+        if (url.pathname === '/api/health') return json(200, { mode: journal.mode ?? 'single-writer-loopback-lab', world: journal.state.world, head: journal.head });
         if (url.pathname === '/sweeps.json') return sweepReport === null ? json(404, { error: 'NO_SWEEP_REPORT' }) : json(200, sweepReport);
         if (url.pathname === '/report.json') return json(200, report ?? { experiments: [] });
+        if (url.pathname === '/api/checkpoint') return typeof journal.checkpoint === 'function' ? json(200, journal.checkpoint()) : json(404, { error: 'NO_DURABLE_JOURNAL' });
+        if (url.pathname === '/api/receipt') return typeof journal.lookup === 'function' ? json(200, { record: journal.lookup(url.searchParams.get('commandHash')) }) : json(404, { error: 'NO_DURABLE_JOURNAL' });
         if (url.pathname === '/api/events') {
           const after = Number(url.searchParams.get('after') ?? '0');
           demand(Number.isSafeInteger(after) && after >= 0, 'BAD_CURSOR');
@@ -66,7 +68,7 @@ export async function startHost(journal, { port = 0, report = null, sweepReport 
       }
       return json(404, { error: 'NOT_FOUND' });
     } catch (error) {
-      const status = error.code === 'BODY_TOO_LARGE' ? 413 : error.code === 'RATE_LIMIT' ? 429 : error instanceof RuleError ? 400 : 500;
+      const status = ['LEDGER_BUSY', 'LEDGER_STALE', 'LEDGER_CLOSED', 'LEDGER_IO_UNCERTAIN'].includes(error.code) ? 503 : error.code === 'BODY_TOO_LARGE' ? 413 : error.code === 'RATE_LIMIT' ? 429 : error instanceof RuleError ? 400 : 500;
       if (!res.headersSent) json(status, { error: error instanceof RuleError ? error.code : 'INTERNAL_ERROR' });
       else res.end();
     }

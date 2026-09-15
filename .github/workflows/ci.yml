@@ -19,6 +19,7 @@ jobs:
           - {os: ubuntu-latest, node: 22}
           - {os: ubuntu-latest, node: 24}
           - {os: windows-latest, node: 24}
+          - {os: windows-latest, node: 22.16.0}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 10
     steps:
@@ -34,6 +35,7 @@ jobs:
       - run: npm run demo
       - run: npm run demo:work
       - run: npm run demo:signer
+      - run: npm run demo:durable
       - run: npm run sweep
       - run: npm run sweep:verify
       - run: npm run build:web
